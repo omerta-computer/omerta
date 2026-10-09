@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+*.pem
+*.key
+*keypair*.json
+id.json
+keys/
+keys-*/
+*.so
+.DS_Store
