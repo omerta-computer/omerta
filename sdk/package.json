@@ -1,0 +1,43 @@
+{
+  "name": "sealed-transfer-sdk",
+  "version": "0.1.0",
+  "description": "Token-2022 confidential transfers in Node and the browser: keys compatible with the spl-token CLI, sealed accounts, sealed transfers, decryption.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
+    "@scure/bip39": "1.6.0",
+    "@solana/zk-sdk": "0.5.4",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "@solana/web3.js": "1.99.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@solana/web3.js": ">=1.98.4 <2"
+  }
+}
