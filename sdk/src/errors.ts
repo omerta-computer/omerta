@@ -25,3 +25,7 @@ export class SealedError extends Error {
     this.details = details;
   }
 }
+
+export function isSealedError(e: unknown, code?: SealedErrorCode): e is SealedError {
+  return e instanceof SealedError && (code === undefined || e.code === code);
+}
