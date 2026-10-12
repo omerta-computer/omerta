@@ -10,3 +10,4 @@ export const TRANSFER_AMOUNT_HI_BITS = 32;
 export const REMAINING_BALANCE_BIT_LENGTH = 64;
 export const RANGE_PROOF_PADDING_BIT_LENGTH = 16;
 export const MAX_TRANSFER_AMOUNT = (1n << 48n) - 1n;
+export const DEFAULT_MAX_PENDING_CREDITS = 65536n;
