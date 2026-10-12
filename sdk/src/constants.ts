@@ -59,3 +59,8 @@ export const ExtensionType = {
   ConfidentialTransferAccount: 5,
   ImmutableOwner: 7,
 } as const;
+
+export const TokenErrorNames: Record<number, string> = {
+  0x1: "InsufficientFunds",
+  0x31: "NonConfidentialTransfersDisabled",
+};
