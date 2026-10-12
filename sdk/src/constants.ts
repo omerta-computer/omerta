@@ -36,3 +36,20 @@ export const CtIx = {
   TransferWithFee: 13,
   ConfigureAccountWithRegistry: 14,
 } as const;
+
+export const ProofIx = {
+  CloseContextState: 0,
+  VerifyZeroCiphertext: 1,
+  VerifyCiphertextCiphertextEquality: 2,
+  VerifyCiphertextCommitmentEquality: 3,
+  VerifyPubkeyValidity: 4,
+  VerifyPercentageWithCap: 5,
+  VerifyBatchedRangeProofU64: 6,
+  VerifyBatchedRangeProofU128: 7,
+  VerifyBatchedRangeProofU256: 8,
+  VerifyGroupedCiphertext2HandlesValidity: 9,
+  VerifyBatchedGroupedCiphertext2HandlesValidity: 10,
+  VerifyGroupedCiphertext3HandlesValidity: 11,
+  VerifyBatchedGroupedCiphertext3HandlesValidity: 12,
+} as const;
+export type ProofKind = keyof typeof ProofIx;
