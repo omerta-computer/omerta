@@ -53,3 +53,9 @@ export const ProofIx = {
   VerifyBatchedGroupedCiphertext3HandlesValidity: 12,
 } as const;
 export type ProofKind = keyof typeof ProofIx;
+
+export const ExtensionType = {
+  ConfidentialTransferMint: 4,
+  ConfidentialTransferAccount: 5,
+  ImmutableOwner: 7,
+} as const;
