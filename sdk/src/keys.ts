@@ -1,4 +1,7 @@
+import { extract, expand } from "@noble/hashes/hkdf";
+import { sha512 } from "@noble/hashes/sha512";
 import { zk } from "./zk.js";
+import { SealedError } from "./errors.js";
 
 export type SealKeys = {
   elgamal: zk.ElGamalKeypair;
@@ -9,3 +12,36 @@ export type SealKeys = {
 const enc = new TextEncoder();
 
 export const STANDARD_DERIVATION_MESSAGE = enc.encode("solana-conf-bal/v1");
+const AE_INFO = enc.encode("ae");
+const ELGAMAL_INFO = enc.encode("elgamal");
+
+const ED25519_L = 2n ** 252n + 27742317777372353535851937790883648493n;
+function leToBigInt(b: Uint8Array): bigint {
+  let v = 0n;
+  for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) + BigInt(b[i]);
+  return v;
+}
+function bigIntToLe32(v: bigint): Uint8Array {
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = Number(v & 0xffn);
+    v >>= 8n;
+  }
+  return out;
+}
+
+function keysFrom(scalar: bigint, aeBytes: Uint8Array): SealKeys {
+  const secret = zk.ElGamalSecretKey.fromBytes(bigIntToLe32(scalar % ED25519_L));
+  const elgamal = zk.ElGamalKeypair.fromSecretKey(secret);
+  const ae = zk.AeKey.fromBytes(aeBytes);
+  return { elgamal, ae, elgamalPubkey: elgamal.pubkey().toBytes() };
+}
+
+export function sealKeysFromSignature(signature: Uint8Array): SealKeys {
+  if (signature.length < 32) throw new SealedError("InvalidKeyFile", "ikm too short");
+  if (signature.every((b) => b === 0)) throw new SealedError("InvalidKeyFile", "default signature refused");
+  const prk = extract(sha512, signature, STANDARD_DERIVATION_MESSAGE);
+  const ae = expand(sha512, prk, AE_INFO, 16);
+  const wide = expand(sha512, prk, ELGAMAL_INFO, 64);
+  return keysFrom(leToBigInt(wide), ae);
+}
