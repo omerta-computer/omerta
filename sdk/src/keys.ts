@@ -1,9 +1,10 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519";
 import { sha3_512 } from "@noble/hashes/sha3";
+import { hmac } from "@noble/hashes/hmac";
 import { extract, expand } from "@noble/hashes/hkdf";
 import { sha512 } from "@noble/hashes/sha512";
-import { generateMnemonic } from "@scure/bip39";
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
 import { zk } from "./zk.js";
 import { SealedError } from "./errors.js";
@@ -78,4 +79,39 @@ export function deriveSealKeysLegacy(owner: Keypair, tokenAccount: PublicKey): S
 
 export function generateRecoveryPhrase(words: 12 | 24 = 12): string {
   return generateMnemonic(wordlist, words === 24 ? 256 : 128);
+}
+
+function slip10Ed25519(seed: Uint8Array, path: string): Uint8Array {
+  const parts = path.split("/");
+  if (parts[0] !== "m") throw new SealedError("InvalidRecoveryPhrase", `bad derivation path ${path}`);
+  let I = hmac(sha512, enc.encode("ed25519 seed"), seed);
+  let key = I.slice(0, 32);
+  let chain = I.slice(32);
+  for (const p of parts.slice(1)) {
+    if (!p.endsWith("'")) throw new SealedError("InvalidRecoveryPhrase", "ed25519 paths are hardened only");
+    const idx = Number(p.slice(0, -1));
+    if (!Number.isInteger(idx) || idx < 0 || idx >= 0x80000000) {
+      throw new SealedError("InvalidRecoveryPhrase", `bad path index ${p}`);
+    }
+    const data = new Uint8Array(37);
+    data.set(key, 1);
+    new DataView(data.buffer).setUint32(33, (idx | 0x80000000) >>> 0, false);
+    I = hmac(sha512, chain, data);
+    key = I.slice(0, 32);
+    chain = I.slice(32);
+  }
+  return key;
+}
+
+export function keypairFromRecoveryPhrase(
+  phrase: string,
+  opts: { passphrase?: string; derivationPath?: string } = {},
+): Keypair {
+  const normalized = phrase.trim().toLowerCase().split(/\s+/).join(" ");
+  if (!validateMnemonic(normalized, wordlist)) {
+    throw new SealedError("InvalidRecoveryPhrase", "not a valid BIP39 English phrase");
+  }
+  const seed = mnemonicToSeedSync(normalized, opts.passphrase ?? "");
+  const secret = opts.derivationPath ? slip10Ed25519(seed, opts.derivationPath) : seed.slice(0, 32);
+  return Keypair.fromSeed(secret);
 }
