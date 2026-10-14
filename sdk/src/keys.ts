@@ -51,3 +51,7 @@ export function sealKeysFromSignature(signature: Uint8Array): SealKeys {
 export function deriveSealKeys(owner: Keypair): SealKeys {
   return sealKeysFromSignature(ed25519.sign(STANDARD_DERIVATION_MESSAGE, owner.secretKey.slice(0, 32)));
 }
+
+export async function deriveSealKeysFromSigner(signMessage: (msg: Uint8Array) => Promise<Uint8Array>): Promise<SealKeys> {
+  return sealKeysFromSignature(await signMessage(STANDARD_DERIVATION_MESSAGE));
+}
