@@ -1,5 +1,6 @@
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519";
+import { sha3_512 } from "@noble/hashes/sha3";
 import { extract, expand } from "@noble/hashes/hkdf";
 import { sha512 } from "@noble/hashes/sha512";
 import { zk } from "./zk.js";
@@ -31,6 +32,15 @@ function bigIntToLe32(v: bigint): Uint8Array {
   }
   return out;
 }
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of parts) {
+    out.set(p, o);
+    o += p.length;
+  }
+  return out;
+}
 
 function keysFrom(scalar: bigint, aeBytes: Uint8Array): SealKeys {
   const secret = zk.ElGamalSecretKey.fromBytes(bigIntToLe32(scalar % ED25519_L));
@@ -54,4 +64,12 @@ export function deriveSealKeys(owner: Keypair): SealKeys {
 
 export async function deriveSealKeysFromSigner(signMessage: (msg: Uint8Array) => Promise<Uint8Array>): Promise<SealKeys> {
   return sealKeysFromSignature(await signMessage(STANDARD_DERIVATION_MESSAGE));
+}
+
+export function deriveSealKeysLegacy(owner: Keypair, tokenAccount: PublicKey): SealKeys {
+  const sk = owner.secretKey.slice(0, 32);
+  const seed = tokenAccount.toBytes();
+  const egSig = ed25519.sign(concat(enc.encode("ElGamalSecretKey"), seed), sk);
+  const aeSig = ed25519.sign(concat(enc.encode("AeKey"), seed), sk);
+  return keysFrom(leToBigInt(sha3_512(sha3_512(egSig))), sha3_512(sha3_512(aeSig)).slice(0, 16));
 }
