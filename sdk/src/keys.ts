@@ -1,3 +1,5 @@
+import { Keypair } from "@solana/web3.js";
+import { ed25519 } from "@noble/curves/ed25519";
 import { extract, expand } from "@noble/hashes/hkdf";
 import { sha512 } from "@noble/hashes/sha512";
 import { zk } from "./zk.js";
@@ -44,4 +46,8 @@ export function sealKeysFromSignature(signature: Uint8Array): SealKeys {
   const ae = expand(sha512, prk, AE_INFO, 16);
   const wide = expand(sha512, prk, ELGAMAL_INFO, 64);
   return keysFrom(leToBigInt(wide), ae);
+}
+
+export function deriveSealKeys(owner: Keypair): SealKeys {
+  return sealKeysFromSignature(ed25519.sign(STANDARD_DERIVATION_MESSAGE, owner.secretKey.slice(0, 32)));
 }
