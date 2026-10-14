@@ -3,6 +3,8 @@ import { ed25519 } from "@noble/curves/ed25519";
 import { sha3_512 } from "@noble/hashes/sha3";
 import { extract, expand } from "@noble/hashes/hkdf";
 import { sha512 } from "@noble/hashes/sha512";
+import { generateMnemonic } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
 import { zk } from "./zk.js";
 import { SealedError } from "./errors.js";
 
@@ -72,4 +74,8 @@ export function deriveSealKeysLegacy(owner: Keypair, tokenAccount: PublicKey): S
   const egSig = ed25519.sign(concat(enc.encode("ElGamalSecretKey"), seed), sk);
   const aeSig = ed25519.sign(concat(enc.encode("AeKey"), seed), sk);
   return keysFrom(leToBigInt(sha3_512(sha3_512(egSig))), sha3_512(sha3_512(aeSig)).slice(0, 16));
+}
+
+export function generateRecoveryPhrase(words: 12 | 24 = 12): string {
+  return generateMnemonic(wordlist, words === 24 ? 256 : 128);
 }
