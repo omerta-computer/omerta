@@ -132,3 +132,7 @@ export function keypairFromFile(json: string | number[]): Keypair {
     throw new SealedError("InvalidKeyFile", "secret and public halves do not match");
   }
 }
+
+export function keypairToFile(kp: Keypair): string {
+  return JSON.stringify(Array.from(kp.secretKey));
+}
