@@ -115,3 +115,20 @@ export function keypairFromRecoveryPhrase(
   const secret = opts.derivationPath ? slip10Ed25519(seed, opts.derivationPath) : seed.slice(0, 32);
   return Keypair.fromSeed(secret);
 }
+
+export function keypairFromFile(json: string | number[]): Keypair {
+  let arr: unknown;
+  try {
+    arr = typeof json === "string" ? JSON.parse(json) : json;
+  } catch {
+    throw new SealedError("InvalidKeyFile", "not JSON");
+  }
+  if (!Array.isArray(arr) || arr.length !== 64 || !arr.every((n) => Number.isInteger(n) && n >= 0 && n < 256)) {
+    throw new SealedError("InvalidKeyFile", "expected a JSON array of 64 bytes");
+  }
+  try {
+    return Keypair.fromSecretKey(Uint8Array.from(arr as number[]));
+  } catch {
+    throw new SealedError("InvalidKeyFile", "secret and public halves do not match");
+  }
+}
