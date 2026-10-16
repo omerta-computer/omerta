@@ -1,3 +1,4 @@
+import { Buffer } from "buffer";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519";
 import { sha3_512 } from "@noble/hashes/sha3";
@@ -8,6 +9,7 @@ import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/b
 import { wordlist } from "@scure/bip39/wordlists/english";
 import { zk } from "./zk.js";
 import { SealedError } from "./errors.js";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "./constants.js";
 
 export type SealKeys = {
   elgamal: zk.ElGamalKeypair;
@@ -135,4 +137,11 @@ export function keypairFromFile(json: string | number[]): Keypair {
 
 export function keypairToFile(kp: Keypair): string {
   return JSON.stringify(Array.from(kp.secretKey));
+}
+
+export function sealedTokenAccountAddress(owner: PublicKey, mint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), TOKEN_2022_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )[0];
 }
