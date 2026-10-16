@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Keypair } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519";
 import { zk } from "../src/zk.js";
-import { STANDARD_DERIVATION_MESSAGE, sealKeysFromSignature, deriveSealKeys } from "../src/keys.js";
+import { STANDARD_DERIVATION_MESSAGE, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner } from "../src/keys.js";
 
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
@@ -22,4 +22,12 @@ test("standard derivation matches solana-zk-sdk canonical vectors", () => {
   const ck = zk.ConfidentialKeys.fromSignature(sig);
   assert.equal(hex(ck.ae().toBytes()), hex(w.ae.toBytes()));
   assert.equal(hex(ck.elgamal().pubkey().toBytes()), hex(w.elgamalPubkey));
+});
+
+test("signer variant equals keypair variant", async () => {
+  const owner = Keypair.generate();
+  const a = deriveSealKeys(owner);
+  const b = await deriveSealKeysFromSigner(async (msg) => ed25519.sign(msg, owner.secretKey.slice(0, 32)));
+  assert.equal(hex(a.elgamalPubkey), hex(b.elgamalPubkey));
+  assert.equal(hex(a.ae.toBytes()), hex(b.ae.toBytes()));
 });
