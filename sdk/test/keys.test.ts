@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
+import { sha3_512 } from "@noble/hashes/sha3";
 import { ed25519 } from "@noble/curves/ed25519";
 import { zk } from "../src/zk.js";
-import { STANDARD_DERIVATION_MESSAGE, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner } from "../src/keys.js";
+import { STANDARD_DERIVATION_MESSAGE, deriveSealKeysLegacy, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner } from "../src/keys.js";
 
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
@@ -30,4 +31,15 @@ test("signer variant equals keypair variant", async () => {
   const b = await deriveSealKeysFromSigner(async (msg) => ed25519.sign(msg, owner.secretKey.slice(0, 32)));
   assert.equal(hex(a.elgamalPubkey), hex(b.elgamalPubkey));
   assert.equal(hex(a.ae.toBytes()), hex(b.ae.toBytes()));
+});
+
+test("legacy derivation follows the SHA3 KDF of solana-zk-sdk <= 4", () => {
+  const L = 2n ** 252n + 27742317777372353535851937790883648493n;
+  const le = (b: Uint8Array) => b.reduceRight((acc, x) => (acc << 8n) + BigInt(x), 0n);
+  const owner = Keypair.fromSeed(new Uint8Array(32).fill(7));
+  const acct = new PublicKey(new Uint8Array(32).fill(9));
+  const k = deriveSealKeysLegacy(owner, acct);
+  const sk = owner.secretKey.slice(0, 32);
+  const egSig = ed25519.sign(Buffer.concat([Buffer.from("ElGamalSecretKey"), acct.toBuffer()]), sk);
+  assert.equal(le(k.elgamal.secret().toBytes()), le(sha3_512(sha3_512(egSig))) % L);
 });
