@@ -43,3 +43,13 @@ test("legacy derivation follows the SHA3 KDF of solana-zk-sdk <= 4", () => {
   const egSig = ed25519.sign(Buffer.concat([Buffer.from("ElGamalSecretKey"), acct.toBuffer()]), sk);
   assert.equal(le(k.elgamal.secret().toBytes()), le(sha3_512(sha3_512(egSig))) % L);
 });
+
+test("AES round trip and keys differ per wallet", () => {
+  const owner = Keypair.generate();
+  const k1 = deriveSealKeys(owner);
+  const k2 = deriveSealKeys(Keypair.generate());
+  assert.notDeepEqual(Buffer.from(k1.elgamalPubkey), Buffer.from(k2.elgamalPubkey));
+  const ct = k1.ae.encrypt(123456789n);
+  assert.equal(ct.toBytes().length, 36);
+  assert.equal(ct.decrypt(k1.ae), 123456789n);
+});
