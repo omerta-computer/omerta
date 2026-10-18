@@ -4,7 +4,17 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { sha3_512 } from "@noble/hashes/sha3";
 import { ed25519 } from "@noble/curves/ed25519";
 import { zk } from "../src/zk.js";
-import { STANDARD_DERIVATION_MESSAGE, deriveSealKeysLegacy, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner, generateRecoveryPhrase, keypairFromRecoveryPhrase } from "../src/keys.js";
+import {
+  STANDARD_DERIVATION_MESSAGE,
+  deriveSealKeysLegacy,
+  sealKeysFromSignature,
+  deriveSealKeys,
+  deriveSealKeysFromSigner,
+  generateRecoveryPhrase,
+  keypairFromFile,
+  keypairFromRecoveryPhrase,
+  keypairToFile,
+} from "../src/keys.js";
 
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
@@ -65,4 +75,10 @@ test("recovery phrase: BIP39 vector, solana-keygen default and wallet path", () 
   assert.equal(p.split(" ").length, 12);
   assert.equal(keypairFromRecoveryPhrase(p).publicKey.toBase58(), keypairFromRecoveryPhrase(` ${p.toUpperCase()} `).publicKey.toBase58());
   assert.throws(() => keypairFromRecoveryPhrase("abandon abandon"), /InvalidRecoveryPhrase/);
+});
+
+test("key file round trip", () => {
+  const kp = Keypair.generate();
+  assert.equal(keypairFromFile(keypairToFile(kp)).publicKey.toBase58(), kp.publicKey.toBase58());
+  assert.throws(() => keypairFromFile("[1,2]"), /InvalidKeyFile/);
 });
