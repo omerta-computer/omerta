@@ -4,7 +4,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { sha3_512 } from "@noble/hashes/sha3";
 import { ed25519 } from "@noble/curves/ed25519";
 import { zk } from "../src/zk.js";
-import { STANDARD_DERIVATION_MESSAGE, deriveSealKeysLegacy, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner } from "../src/keys.js";
+import { STANDARD_DERIVATION_MESSAGE, deriveSealKeysLegacy, sealKeysFromSignature, deriveSealKeys, deriveSealKeysFromSigner, generateRecoveryPhrase, keypairFromRecoveryPhrase } from "../src/keys.js";
 
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
@@ -52,4 +52,17 @@ test("AES round trip and keys differ per wallet", () => {
   const ct = k1.ae.encrypt(123456789n);
   assert.equal(ct.toBytes().length, 36);
   assert.equal(ct.decrypt(k1.ae), 123456789n);
+});
+
+test("recovery phrase: BIP39 vector, solana-keygen default and wallet path", () => {
+  const phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+  assert.equal(
+    keypairFromRecoveryPhrase(phrase, { derivationPath: "m/44'/501'/0'/0'" }).publicKey.toBase58(),
+    "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk",
+  );
+  const p = generateRecoveryPhrase();
+  assert.equal(p.split(" ").length, 12);
+  assert.equal(keypairFromRecoveryPhrase(p).publicKey.toBase58(), keypairFromRecoveryPhrase(` ${p.toUpperCase()} `).publicKey.toBase58());
+  assert.throws(() => keypairFromRecoveryPhrase("abandon abandon"), /InvalidRecoveryPhrase/);
 });
