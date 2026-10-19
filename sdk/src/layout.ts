@@ -1,3 +1,5 @@
+import { PublicKey } from "@solana/web3.js";
+
 export type ConfidentialAccountState = {
   approved: boolean;
   elgamalPubkey: Uint8Array;
@@ -11,4 +13,13 @@ export type ConfidentialAccountState = {
   maxPendingCreditCounter: bigint;
   expectedPendingCreditCounter: bigint;
   actualPendingCreditCounter: bigint;
+};
+
+export type TokenAccountState = {
+  mint: PublicKey;
+  owner: PublicKey;
+  amount: bigint;
+  state: number;
+  extensions: Map<number, Uint8Array>;
+  confidential: ConfidentialAccountState | null;
 };
