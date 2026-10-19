@@ -23,3 +23,19 @@ export type TokenAccountState = {
   extensions: Map<number, Uint8Array>;
   confidential: ConfidentialAccountState | null;
 };
+
+export type ConfidentialMintState = {
+  authority: PublicKey | null;
+  autoApproveNewAccounts: boolean;
+  auditorElGamalPubkey: Uint8Array | null;
+};
+
+export type MintState = {
+  mintAuthority: PublicKey | null;
+  supply: bigint;
+  decimals: number;
+  isInitialized: boolean;
+  freezeAuthority: PublicKey | null;
+  extensions: Map<number, Uint8Array>;
+  confidential: ConfidentialMintState | null;
+};
