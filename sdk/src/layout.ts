@@ -1,4 +1,8 @@
 import { PublicKey } from "@solana/web3.js";
+import { ExtensionType } from "./constants.js";
+
+const ACCOUNT_BASE = 165;
+const ACCOUNT_TYPE_ACCOUNT = 2;
 
 export const CT_ACCOUNT_LEN = 295;
 
@@ -76,5 +80,22 @@ export function parseConfidentialAccount(v: Uint8Array): ConfidentialAccountStat
     maxPendingCreditCounter: u64(v, 271),
     expectedPendingCreditCounter: u64(v, 279),
     actualPendingCreditCounter: u64(v, 287),
+  };
+}
+
+export function parseTokenAccount(data: Uint8Array): TokenAccountState {
+  if (data.length < ACCOUNT_BASE) throw new Error("not a token account");
+  const extensions =
+    data.length > ACCOUNT_BASE && data[ACCOUNT_BASE] === ACCOUNT_TYPE_ACCOUNT
+      ? parseTlv(data, ACCOUNT_BASE + 1)
+      : new Map<number, Uint8Array>();
+  const ct = extensions.get(ExtensionType.ConfidentialTransferAccount);
+  return {
+    mint: new PublicKey(data.slice(0, 32)),
+    owner: new PublicKey(data.slice(32, 64)),
+    amount: u64(data, 64),
+    state: data[108],
+    extensions,
+    confidential: ct ? parseConfidentialAccount(ct) : null,
   };
 }
