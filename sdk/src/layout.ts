@@ -1,5 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
+export const CT_ACCOUNT_LEN = 295;
+
 export type ConfidentialAccountState = {
   approved: boolean;
   elgamalPubkey: Uint8Array;
@@ -40,6 +42,10 @@ export type MintState = {
   confidential: ConfidentialMintState | null;
 };
 
+function u64(b: Uint8Array, o: number): bigint {
+  return new DataView(b.buffer, b.byteOffset, b.byteLength).getBigUint64(o, true);
+}
+
 function parseTlv(data: Uint8Array, start: number): Map<number, Uint8Array> {
   const out = new Map<number, Uint8Array>();
   const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -53,4 +59,22 @@ function parseTlv(data: Uint8Array, start: number): Map<number, Uint8Array> {
     o += 4 + len;
   }
   return out;
+}
+
+export function parseConfidentialAccount(v: Uint8Array): ConfidentialAccountState {
+  if (v.length < CT_ACCOUNT_LEN) throw new Error("ConfidentialTransferAccount too short");
+  return {
+    approved: v[0] === 1,
+    elgamalPubkey: v.slice(1, 33),
+    pendingLo: v.slice(33, 97),
+    pendingHi: v.slice(97, 161),
+    available: v.slice(161, 225),
+    decryptableAvailable: v.slice(225, 261),
+    allowConfidentialCredits: v[261] === 1,
+    allowNonConfidentialCredits: v[262] === 1,
+    pendingCreditCounter: u64(v, 263),
+    maxPendingCreditCounter: u64(v, 271),
+    expectedPendingCreditCounter: u64(v, 279),
+    actualPendingCreditCounter: u64(v, 287),
+  };
 }
