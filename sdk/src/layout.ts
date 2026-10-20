@@ -2,9 +2,12 @@ import { PublicKey } from "@solana/web3.js";
 import { ExtensionType } from "./constants.js";
 
 const ACCOUNT_BASE = 165;
+const MINT_BASE = 82;
+const ACCOUNT_TYPE_MINT = 1;
 const ACCOUNT_TYPE_ACCOUNT = 2;
 
 export const CT_ACCOUNT_LEN = 295;
+export const CT_MINT_LEN = 65;
 
 export type ConfidentialAccountState = {
   approved: boolean;
@@ -65,6 +68,8 @@ function parseTlv(data: Uint8Array, start: number): Map<number, Uint8Array> {
   return out;
 }
 
+const isZero = (b: Uint8Array) => b.every((x) => x === 0);
+
 export function parseConfidentialAccount(v: Uint8Array): ConfidentialAccountState {
   if (v.length < CT_ACCOUNT_LEN) throw new Error("ConfidentialTransferAccount too short");
   return {
@@ -99,3 +104,30 @@ export function parseTokenAccount(data: Uint8Array): TokenAccountState {
     confidential: ct ? parseConfidentialAccount(ct) : null,
   };
 }
+
+export function parseMint(data: Uint8Array): MintState {
+  if (data.length < MINT_BASE) throw new Error("not a mint");
+  const coption = (o: number) =>
+    new DataView(data.buffer, data.byteOffset).getUint32(o, true) === 1 ? new PublicKey(data.slice(o + 4, o + 36)) : null;
+  const extensions =
+    data.length > ACCOUNT_BASE && data[ACCOUNT_BASE] === ACCOUNT_TYPE_MINT
+      ? parseTlv(data, ACCOUNT_BASE + 1)
+      : new Map<number, Uint8Array>();
+  const ct = extensions.get(ExtensionType.ConfidentialTransferMint);
+  return {
+    mintAuthority: coption(0),
+    supply: u64(data, 36),
+    decimals: data[44],
+    isInitialized: data[45] === 1,
+    freezeAuthority: coption(46),
+    extensions,
+    confidential: ct
+      ? {
+          authority: isZero(ct.subarray(0, 32)) ? null : new PublicKey(ct.slice(0, 32)),
+          autoApproveNewAccounts: ct[32] === 1,
+          auditorElGamalPubkey: isZero(ct.subarray(33, 65)) ? null : ct.slice(33, 65),
+        }
+      : null,
+  };
+}
+
