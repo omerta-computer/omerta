@@ -39,3 +39,18 @@ export type MintState = {
   extensions: Map<number, Uint8Array>;
   confidential: ConfidentialMintState | null;
 };
+
+function parseTlv(data: Uint8Array, start: number): Map<number, Uint8Array> {
+  const out = new Map<number, Uint8Array>();
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  let o = start;
+  while (o + 4 <= data.length) {
+    const t = dv.getUint16(o, true);
+    const len = dv.getUint16(o + 2, true);
+    if (t === 0) break;
+    if (o + 4 + len > data.length) break;
+    out.set(t, data.subarray(o + 4, o + 4 + len));
+    o += 4 + len;
+  }
+  return out;
+}
