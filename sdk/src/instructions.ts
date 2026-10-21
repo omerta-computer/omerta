@@ -65,3 +65,8 @@ export function ixConfigureAccount(p: {
     data: ct(CtIx.ConfigureAccount, p.decryptableZeroBalance, u64le(p.maxPendingCredits), i8(p.proofInstructionOffset)),
   });
 }
+
+function simpleOwnerIx(sub: number, account: PublicKey, owner: PublicKey): TransactionInstruction {
+  return new TransactionInstruction({ programId: TOKEN_2022_PROGRAM_ID, keys: [w(account), r(owner, true)], data: ct(sub) });
+}
+export const ixDisableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.DisableNonConfidentialCredits, a, o);
