@@ -70,3 +70,4 @@ function simpleOwnerIx(sub: number, account: PublicKey, owner: PublicKey): Trans
   return new TransactionInstruction({ programId: TOKEN_2022_PROGRAM_ID, keys: [w(account), r(owner, true)], data: ct(sub) });
 }
 export const ixDisableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.DisableNonConfidentialCredits, a, o);
+export const ixEnableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.EnableNonConfidentialCredits, a, o);
