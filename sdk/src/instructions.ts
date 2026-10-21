@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { PublicKey, SystemProgram, TransactionInstruction, AccountMeta } from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, ExtensionType, TOKEN_2022_PROGRAM_ID, TokenIx } from "./constants.js";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, CtIx, ExtensionType, SYSVAR_INSTRUCTIONS_ID, TOKEN_2022_PROGRAM_ID, TokenIx } from "./constants.js";
 import { sealedTokenAccountAddress } from "./keys.js";
 
 const w = (pubkey: PublicKey, isSigner = false): AccountMeta => ({ pubkey, isSigner, isWritable: true });
@@ -8,6 +8,17 @@ const r = (pubkey: PublicKey, isSigner = false): AccountMeta => ({ pubkey, isSig
 
 function bytes(...parts: (Uint8Array | number[])[]): Buffer {
   return Buffer.concat(parts.map((p) => Buffer.from(p as Uint8Array)));
+}
+function u64le(v: bigint): Uint8Array {
+  const b = new Uint8Array(8);
+  new DataView(b.buffer).setBigUint64(0, v, true);
+  return b;
+}
+function i8(v: number): number[] {
+  return [v & 0xff];
+}
+function ct(sub: number, ...rest: (Uint8Array | number[])[]): Buffer {
+  return bytes([TokenIx.ConfidentialTransferExtension, sub], ...rest);
 }
 
 export function ixCreateAssociatedTokenAccountIdempotent(payer: PublicKey, owner: PublicKey, mint: PublicKey): TransactionInstruction {
@@ -31,5 +42,26 @@ export function ixReallocate(
     programId: TOKEN_2022_PROGRAM_ID,
     keys: [w(account), w(payer, true), r(SystemProgram.programId), r(owner, true)],
     data: bytes([TokenIx.Reallocate], ext),
+  });
+}
+
+export function ixConfigureAccount(p: {
+  account: PublicKey;
+  mint: PublicKey;
+  owner: PublicKey;
+  decryptableZeroBalance: Uint8Array;
+  maxPendingCredits: bigint;
+  proofInstructionOffset: number;
+  contextState?: PublicKey;
+}): TransactionInstruction {
+  const keys = [w(p.account), r(p.mint)];
+  if (p.proofInstructionOffset !== 0) keys.push(r(SYSVAR_INSTRUCTIONS_ID));
+  else if (p.contextState) keys.push(r(p.contextState));
+  else throw new Error("ConfigureAccount needs a proof offset or a context state account");
+  keys.push(r(p.owner, true));
+  return new TransactionInstruction({
+    programId: TOKEN_2022_PROGRAM_ID,
+    keys,
+    data: ct(CtIx.ConfigureAccount, p.decryptableZeroBalance, u64le(p.maxPendingCredits), i8(p.proofInstructionOffset)),
   });
 }
