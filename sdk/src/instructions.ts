@@ -71,3 +71,5 @@ function simpleOwnerIx(sub: number, account: PublicKey, owner: PublicKey): Trans
 }
 export const ixDisableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.DisableNonConfidentialCredits, a, o);
 export const ixEnableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.EnableNonConfidentialCredits, a, o);
+export const ixEnableConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.EnableConfidentialCredits, a, o);
+export const ixDisableConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.DisableConfidentialCredits, a, o);
