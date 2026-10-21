@@ -73,3 +73,11 @@ export const ixDisableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => s
 export const ixEnableNonConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.EnableNonConfidentialCredits, a, o);
 export const ixEnableConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.EnableConfidentialCredits, a, o);
 export const ixDisableConfidentialCredits = (a: PublicKey, o: PublicKey) => simpleOwnerIx(CtIx.DisableConfidentialCredits, a, o);
+
+export function ixDeposit(account: PublicKey, mint: PublicKey, owner: PublicKey, amount: bigint, decimals: number): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: TOKEN_2022_PROGRAM_ID,
+    keys: [w(account), r(mint), r(owner, true)],
+    data: ct(CtIx.Deposit, u64le(amount), [decimals]),
+  });
+}
