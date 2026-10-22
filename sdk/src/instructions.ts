@@ -81,3 +81,16 @@ export function ixDeposit(account: PublicKey, mint: PublicKey, owner: PublicKey,
     data: ct(CtIx.Deposit, u64le(amount), [decimals]),
   });
 }
+
+export function ixApplyPendingBalance(
+  account: PublicKey,
+  owner: PublicKey,
+  expectedPendingCreditCounter: bigint,
+  newDecryptableAvailableBalance: Uint8Array,
+): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: TOKEN_2022_PROGRAM_ID,
+    keys: [w(account), r(owner, true)],
+    data: ct(CtIx.ApplyPendingBalance, u64le(expectedPendingCreditCounter), newDecryptableAvailableBalance),
+  });
+}
