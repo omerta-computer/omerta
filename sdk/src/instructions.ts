@@ -94,3 +94,36 @@ export function ixApplyPendingBalance(
     data: ct(CtIx.ApplyPendingBalance, u64le(expectedPendingCreditCounter), newDecryptableAvailableBalance),
   });
 }
+
+export function ixTransfer(p: {
+  source: PublicKey;
+  mint: PublicKey;
+  destination: PublicKey;
+  owner: PublicKey;
+  newSourceDecryptableAvailableBalance: Uint8Array;
+  auditorCiphertextLo: Uint8Array;
+  auditorCiphertextHi: Uint8Array;
+  equality: { offset: number } | { contextState: PublicKey };
+  validity: { offset: number } | { contextState: PublicKey };
+  range: { offset: number } | { contextState: PublicKey };
+}): TransactionInstruction {
+  const off = (x: { offset: number } | { contextState: PublicKey }) => ("offset" in x ? x.offset : 0);
+  const offsets = [off(p.equality), off(p.validity), off(p.range)];
+  const keys = [w(p.source), r(p.mint), w(p.destination)];
+  if (offsets.some((o) => o !== 0)) keys.push(r(SYSVAR_INSTRUCTIONS_ID));
+  for (const x of [p.equality, p.validity, p.range]) if ("contextState" in x) keys.push(r(x.contextState));
+  keys.push(r(p.owner, true));
+  return new TransactionInstruction({
+    programId: TOKEN_2022_PROGRAM_ID,
+    keys,
+    data: ct(
+      CtIx.Transfer,
+      p.newSourceDecryptableAvailableBalance,
+      p.auditorCiphertextLo,
+      p.auditorCiphertextHi,
+      i8(offsets[0]),
+      i8(offsets[1]),
+      i8(offsets[2]),
+    ),
+  });
+}
