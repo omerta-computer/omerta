@@ -136,3 +136,5 @@ export function ixVerifyProof(
   const keys = contextState ? [w(contextState.account), r(contextState.authority)] : [];
   return new TransactionInstruction({ programId: ZK_ELGAMAL_PROOF_PROGRAM_ID, keys, data: bytes([ProofIx[kind]], proofData) });
 }
+
+export const ixVerifyPubkeyValidity = (proofData: Uint8Array) => ixVerifyProof("VerifyPubkeyValidity", proofData);
