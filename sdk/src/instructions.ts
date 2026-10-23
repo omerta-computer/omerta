@@ -1,6 +1,16 @@
 import { Buffer } from "buffer";
 import { PublicKey, SystemProgram, TransactionInstruction, AccountMeta } from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, CtIx, ExtensionType, ProofIx, ProofKind, SYSVAR_INSTRUCTIONS_ID, TOKEN_2022_PROGRAM_ID, TokenIx, ZK_ELGAMAL_PROOF_PROGRAM_ID } from "./constants.js";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  CtIx,
+  ExtensionType,
+  ProofIx,
+  ProofKind,
+  SYSVAR_INSTRUCTIONS_ID,
+  TOKEN_2022_PROGRAM_ID,
+  TokenIx,
+  ZK_ELGAMAL_PROOF_PROGRAM_ID,
+} from "./constants.js";
 import { sealedTokenAccountAddress } from "./keys.js";
 
 const w = (pubkey: PublicKey, isSigner = false): AccountMeta => ({ pubkey, isSigner, isWritable: true });
@@ -146,3 +156,5 @@ export function ixCloseContextState(contextState: PublicKey, destination: Public
     data: Buffer.from([ProofIx.CloseContextState]),
   });
 }
+
+export const contextStateSize = (contextLen: number) => 33 + contextLen;
