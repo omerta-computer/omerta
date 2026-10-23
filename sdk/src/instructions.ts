@@ -138,3 +138,11 @@ export function ixVerifyProof(
 }
 
 export const ixVerifyPubkeyValidity = (proofData: Uint8Array) => ixVerifyProof("VerifyPubkeyValidity", proofData);
+
+export function ixCloseContextState(contextState: PublicKey, destination: PublicKey, authority: PublicKey): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: ZK_ELGAMAL_PROOF_PROGRAM_ID,
+    keys: [w(contextState), w(destination), r(authority, true)],
+    data: Buffer.from([ProofIx.CloseContextState]),
+  });
+}
