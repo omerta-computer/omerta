@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { PublicKey, SystemProgram, TransactionInstruction, AccountMeta } from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, CtIx, ExtensionType, SYSVAR_INSTRUCTIONS_ID, TOKEN_2022_PROGRAM_ID, TokenIx } from "./constants.js";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, CtIx, ExtensionType, ProofIx, ProofKind, SYSVAR_INSTRUCTIONS_ID, TOKEN_2022_PROGRAM_ID, TokenIx, ZK_ELGAMAL_PROOF_PROGRAM_ID } from "./constants.js";
 import { sealedTokenAccountAddress } from "./keys.js";
 
 const w = (pubkey: PublicKey, isSigner = false): AccountMeta => ({ pubkey, isSigner, isWritable: true });
@@ -126,4 +126,13 @@ export function ixTransfer(p: {
       i8(offsets[2]),
     ),
   });
+}
+
+export function ixVerifyProof(
+  kind: ProofKind,
+  proofData: Uint8Array,
+  contextState?: { account: PublicKey; authority: PublicKey },
+): TransactionInstruction {
+  const keys = contextState ? [w(contextState.account), r(contextState.authority)] : [];
+  return new TransactionInstruction({ programId: ZK_ELGAMAL_PROOF_PROGRAM_ID, keys, data: bytes([ProofIx[kind]], proofData) });
 }
