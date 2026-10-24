@@ -97,3 +97,9 @@ export function generateTransferProofs(p: {
   out.ms = Math.round(now() - t0);
   return out;
 }
+
+export function verifyTransferProofs(p: TransferProofs): void {
+  zk.CiphertextCommitmentEqualityProofData.fromBytes(p.equality).verify();
+  zk.BatchedGroupedCiphertext3HandlesValidityProofData.fromBytes(p.validity).verify();
+  zk.BatchedRangeProofU128Data.fromBytes(p.range).verify();
+}
