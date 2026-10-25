@@ -103,3 +103,10 @@ export function verifyTransferProofs(p: TransferProofs): void {
   zk.BatchedGroupedCiphertext3HandlesValidityProofData.fromBytes(p.validity).verify();
   zk.BatchedRangeProofU128Data.fromBytes(p.range).verify();
 }
+
+export function pubkeyValidityProof(keys: SealKeys): Uint8Array {
+  const d = new zk.PubkeyValidityProofData(keys.elgamal);
+  const b = d.toBytes();
+  d.free();
+  return b;
+}
