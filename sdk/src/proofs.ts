@@ -120,3 +120,10 @@ export function decryptPending(keys: SealKeys, pendingLo: Uint8Array, pendingHi:
   const vHi = s.decrypt(hi);
   return vLo + (vHi << BigInt(TRANSFER_AMOUNT_LO_BITS));
 }
+
+export function decryptAvailable(keys: SealKeys, decryptable: Uint8Array): bigint {
+  const c = zk.AeCiphertext.fromBytes(decryptable);
+  const v = c?.decrypt(keys.ae);
+  if (v === undefined || v === null) throw new SealedError("DecryptFailed", "AES ciphertext does not open with this key");
+  return v;
+}
