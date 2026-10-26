@@ -1,6 +1,12 @@
 import { zk } from "./zk.js";
 import { SealedError } from "./errors.js";
-import { MAX_TRANSFER_AMOUNT, RANGE_PROOF_PADDING_BIT_LENGTH, REMAINING_BALANCE_BIT_LENGTH, TRANSFER_AMOUNT_HI_BITS, TRANSFER_AMOUNT_LO_BITS } from "./constants.js";
+import {
+  MAX_TRANSFER_AMOUNT,
+  RANGE_PROOF_PADDING_BIT_LENGTH,
+  REMAINING_BALANCE_BIT_LENGTH,
+  TRANSFER_AMOUNT_HI_BITS,
+  TRANSFER_AMOUNT_LO_BITS,
+} from "./constants.js";
 import type { SealKeys } from "./keys.js";
 
 export type TransferProofs = {
@@ -126,4 +132,10 @@ export function decryptAvailable(keys: SealKeys, decryptable: Uint8Array): bigin
   const v = c?.decrypt(keys.ae);
   if (v === undefined || v === null) throw new SealedError("DecryptFailed", "AES ciphertext does not open with this key");
   return v;
+}
+
+export function decryptAvailableElGamal(keys: SealKeys, available: Uint8Array): bigint {
+  const c = zk.ElGamalCiphertext.fromBytes(available);
+  if (!c) throw new SealedError("DecryptFailed", "bad available ciphertext");
+  return keys.elgamal.secret().decrypt(c);
 }
