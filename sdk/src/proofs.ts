@@ -110,3 +110,13 @@ export function pubkeyValidityProof(keys: SealKeys): Uint8Array {
   d.free();
   return b;
 }
+
+export function decryptPending(keys: SealKeys, pendingLo: Uint8Array, pendingHi: Uint8Array): bigint {
+  const lo = zk.ElGamalCiphertext.fromBytes(pendingLo);
+  const hi = zk.ElGamalCiphertext.fromBytes(pendingHi);
+  if (!lo || !hi) throw new SealedError("DecryptFailed", "bad pending ciphertext");
+  const s = keys.elgamal.secret();
+  const vLo = s.decrypt(lo);
+  const vHi = s.decrypt(hi);
+  return vLo + (vHi << BigInt(TRANSFER_AMOUNT_LO_BITS));
+}
