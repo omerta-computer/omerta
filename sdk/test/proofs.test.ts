@@ -28,3 +28,17 @@ test("transfer proofs verify in WASM and sizes are as expected", () => {
     `sizes equality=${p.equality.length}/${p.equalityContextLen} validity=${p.validity.length}/${p.validityContextLen} range=${p.range.length}/${p.rangeContextLen} ms=${p.ms}`,
   );
 });
+
+test("insufficient balance is refused before proving", () => {
+  assert.throws(
+    () =>
+      generateTransferProofs({
+        keys: src,
+        currentAvailableCiphertext: new Uint8Array(64),
+        currentAvailable: 10n,
+        amount: 11n,
+        destinationElGamalPubkey: dst.elgamalPubkey,
+      }),
+    /InsufficientSealedBalance/,
+  );
+});
