@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Keypair } from "@solana/web3.js";
 import { zk } from "../src/zk.js";
 import { deriveSealKeys } from "../src/keys.js";
-import { generateTransferProofs, verifyTransferProofs, decryptAvailable } from "../src/proofs.js";
+import { generateTransferProofs, verifyTransferProofs, decryptPending, decryptAvailable } from "../src/proofs.js";
 
 const src = deriveSealKeys(Keypair.generate());
 const dst = deriveSealKeys(Keypair.generate());
@@ -41,4 +41,10 @@ test("insufficient balance is refused before proving", () => {
       }),
     /InsufficientSealedBalance/,
   );
+});
+
+test("pending decrypt combines lo and hi", () => {
+  const lo = dst.elgamal.pubkey().encryptWith(0x1234n, new zk.PedersenOpening()).toBytes();
+  const hi = dst.elgamal.pubkey().encryptWith(0x56789n, new zk.PedersenOpening()).toBytes();
+  assert.equal(decryptPending(dst, lo, hi), 0x1234n + (0x56789n << 16n));
 });
