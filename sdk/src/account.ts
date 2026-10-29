@@ -2,7 +2,7 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { DEFAULT_MAX_PENDING_CREDITS, ExtensionType, TOKEN_2022_PROGRAM_ID } from "./constants.js";
 import { SealedError } from "./errors.js";
 import { deriveSealKeys, sealedTokenAccountAddress, type SealKeys } from "./keys.js";
-import { ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
+import { ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDeposit, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
 import { parseMint, parseTokenAccount, type MintState, type TokenAccountState } from "./layout.js";
 import { pubkeyValidityProof } from "./proofs.js";
 import { sendInstructions, type SendOptions } from "./rpc.js";
@@ -57,4 +57,18 @@ export async function createSealedAccount(p: {
   ixs.push(ixDisableNonConfidentialCredits(tokenAccount, p.owner.publicKey));
   const { signature, bytes } = await sendInstructions(p.connection, ixs, p.payer, [p.owner], p.send);
   return { tokenAccount, signature, keys, bytes };
+}
+
+export async function deposit(p: {
+  connection: Connection;
+  payer: Keypair;
+  owner: Keypair;
+  tokenAccount: PublicKey;
+  mint: PublicKey;
+  amount: bigint;
+  decimals: number;
+  send?: SendOptions;
+}): Promise<string> {
+  const ix = ixDeposit(p.tokenAccount, p.mint, p.owner.publicKey, p.amount, p.decimals);
+  return (await sendInstructions(p.connection, [ix], p.payer, [p.owner], p.send)).signature;
 }
