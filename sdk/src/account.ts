@@ -2,9 +2,9 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { DEFAULT_MAX_PENDING_CREDITS, ExtensionType, TOKEN_2022_PROGRAM_ID } from "./constants.js";
 import { SealedError } from "./errors.js";
 import { deriveSealKeys, sealedTokenAccountAddress, type SealKeys } from "./keys.js";
-import { ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDeposit, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
+import { ixApplyPendingBalance, ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDeposit, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
 import { parseMint, parseTokenAccount, type MintState, type TokenAccountState } from "./layout.js";
-import { pubkeyValidityProof } from "./proofs.js";
+import { decryptAvailable, decryptPending, pubkeyValidityProof } from "./proofs.js";
 import { sendInstructions, type SendOptions } from "./rpc.js";
 
 export async function fetchTokenAccount(
@@ -71,4 +71,36 @@ export async function deposit(p: {
 }): Promise<string> {
   const ix = ixDeposit(p.tokenAccount, p.mint, p.owner.publicKey, p.amount, p.decimals);
   return (await sendInstructions(p.connection, [ix], p.payer, [p.owner], p.send)).signature;
+}
+
+export async function applyPending(p: {
+  connection: Connection;
+  payer: Keypair;
+  owner: Keypair;
+  tokenAccount: PublicKey;
+  keys?: SealKeys;
+  send?: SendOptions;
+}): Promise<{ signature: string | null; available: bigint; applied: bigint }> {
+  const keys = p.keys ?? deriveSealKeys(p.owner);
+  const acc = await fetchTokenAccount(p.connection, p.tokenAccount);
+  const c = acc?.state.confidential;
+  if (!c) throw new SealedError("NotSealed", p.tokenAccount.toBase58());
+  const available = decryptAvailable(keys, c.decryptableAvailable);
+  if (c.pendingCreditCounter === c.expectedPendingCreditCounter && c.pendingCreditCounter === c.actualPendingCreditCounter) {
+    const pending = decryptPending(keys, c.pendingLo, c.pendingHi);
+    if (pending === 0n) return { signature: null, available, applied: 0n };
+  }
+  const pending = decryptPending(keys, c.pendingLo, c.pendingHi);
+  const next = available + pending;
+  const ix = ixApplyPendingBalance(p.tokenAccount, p.owner.publicKey, c.pendingCreditCounter, keys.ae.encrypt(next).toBytes());
+  try {
+    const { signature } = await sendInstructions(p.connection, [ix], p.payer, [p.owner], p.send);
+    return { signature, available: next, applied: pending };
+  } catch (e) {
+    const again = await fetchTokenAccount(p.connection, p.tokenAccount);
+    if (again?.state.confidential && again.state.confidential.pendingCreditCounter !== c.pendingCreditCounter) {
+      throw new SealedError("PendingChanged", "a credit landed during apply; run again");
+    }
+    throw e;
+  }
 }
