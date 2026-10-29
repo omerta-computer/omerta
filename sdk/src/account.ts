@@ -4,7 +4,7 @@ import { SealedError } from "./errors.js";
 import { deriveSealKeys, sealedTokenAccountAddress, type SealKeys } from "./keys.js";
 import { ixApplyPendingBalance, ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDeposit, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
 import { parseMint, parseTokenAccount, type MintState, type TokenAccountState } from "./layout.js";
-import { decryptAvailable, decryptPending, pubkeyValidityProof } from "./proofs.js";
+import { decryptAvailable, decryptAvailableElGamal, decryptPending, pubkeyValidityProof } from "./proofs.js";
 import { sendInstructions, type SendOptions } from "./rpc.js";
 
 export async function fetchTokenAccount(
@@ -103,4 +103,23 @@ export async function applyPending(p: {
     }
     throw e;
   }
+}
+
+export async function decryptBalances(p: {
+  connection: Connection;
+  tokenAccount: PublicKey;
+  keys: SealKeys;
+  verify?: boolean;
+}): Promise<{ available: bigint; availableFromElGamal?: bigint; pending: bigint; pendingCredits: bigint; slot: number }> {
+  const acc = await fetchTokenAccount(p.connection, p.tokenAccount);
+  const c = acc?.state.confidential;
+  if (!acc || !c) throw new SealedError("NotSealed", p.tokenAccount.toBase58());
+  const out = {
+    available: decryptAvailable(p.keys, c.decryptableAvailable),
+    pending: decryptPending(p.keys, c.pendingLo, c.pendingHi),
+    pendingCredits: c.pendingCreditCounter - c.expectedPendingCreditCounter,
+    slot: acc.slot,
+  } as { available: bigint; availableFromElGamal?: bigint; pending: bigint; pendingCredits: bigint; slot: number };
+  if (p.verify) out.availableFromElGamal = decryptAvailableElGamal(p.keys, c.available);
+  return out;
 }
