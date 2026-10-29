@@ -6,3 +6,4 @@ export * from "./layout.js";
 export * from "./instructions.js";
 export * from "./proofs.js";
 export * from "./rpc.js";
+export * from "./account.js";
