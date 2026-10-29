@@ -1,4 +1,4 @@
-import { Commitment, Connection } from "@solana/web3.js";
+import { Commitment, Connection, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { SealedError } from "./errors.js";
 import { TokenErrorNames } from "./constants.js";
 
@@ -9,6 +9,30 @@ export type SendOptions = {
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export async function sendInstructions(
+  connection: Connection,
+  instructions: TransactionInstruction[],
+  feePayer: Keypair,
+  signers: Keypair[],
+  opts: SendOptions = {},
+): Promise<{ signature: string; bytes: number; slot: number }> {
+  const commitment = opts.commitment ?? "confirmed";
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(commitment);
+  const tx = new Transaction({ feePayer: feePayer.publicKey, blockhash, lastValidBlockHeight }).add(...instructions);
+  const uniq = new Map<string, Keypair>();
+  for (const s of [feePayer, ...signers]) uniq.set(s.publicKey.toBase58(), s);
+  tx.sign(...uniq.values());
+  const raw = tx.serialize();
+  let signature: string;
+  try {
+    signature = await connection.sendRawTransaction(raw, { skipPreflight: false, preflightCommitment: commitment, maxRetries: 0 });
+  } catch (e) {
+    throw toTxError(e);
+  }
+  const slot = await confirmByPolling(connection, signature, lastValidBlockHeight, raw, opts);
+  return { signature, bytes: raw.length, slot };
+}
 
 export async function confirmByPolling(
   connection: Connection,
