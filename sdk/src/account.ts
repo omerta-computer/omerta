@@ -1,8 +1,17 @@
+import { Buffer } from "buffer";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { DEFAULT_MAX_PENDING_CREDITS, ExtensionType, TOKEN_2022_PROGRAM_ID } from "./constants.js";
 import { SealedError } from "./errors.js";
 import { deriveSealKeys, sealedTokenAccountAddress, type SealKeys } from "./keys.js";
-import { ixApplyPendingBalance, ixConfigureAccount, ixCreateAssociatedTokenAccountIdempotent, ixDeposit, ixDisableNonConfidentialCredits, ixReallocate, ixVerifyPubkeyValidity } from "./instructions.js";
+import {
+  ixApplyPendingBalance,
+  ixConfigureAccount,
+  ixCreateAssociatedTokenAccountIdempotent,
+  ixDeposit,
+  ixDisableNonConfidentialCredits,
+  ixReallocate,
+  ixVerifyPubkeyValidity,
+} from "./instructions.js";
 import { parseMint, parseTokenAccount, type MintState, type TokenAccountState } from "./layout.js";
 import { decryptAvailable, decryptAvailableElGamal, decryptPending, pubkeyValidityProof } from "./proofs.js";
 import { sendInstructions, type SendOptions } from "./rpc.js";
@@ -124,6 +133,8 @@ export async function decryptBalances(p: {
   return out;
 }
 
+const b64 = (b: Uint8Array) => Buffer.from(b).toString("base64");
+
 export type SealedAccountView = {
   address: string;
   owner: string;
@@ -146,3 +157,33 @@ export type SealedAccountView = {
   } | null;
   slot: number;
 };
+
+export async function readSealedAccount(connection: Connection, address: PublicKey): Promise<SealedAccountView | null> {
+  const acc = await fetchTokenAccount(connection, address);
+  if (!acc) return null;
+  const c = acc.state.confidential;
+  return {
+    address: address.toBase58(),
+    owner: acc.state.owner.toBase58(),
+    mint: acc.state.mint.toBase58(),
+    programId: TOKEN_2022_PROGRAM_ID.toBase58(),
+    publicAmount: acc.state.amount,
+    sealed: c
+      ? {
+          approved: c.approved,
+          elgamalPubkey: b64(c.elgamalPubkey),
+          pendingLo: b64(c.pendingLo),
+          pendingHi: b64(c.pendingHi),
+          available: b64(c.available),
+          decryptableAvailable: b64(c.decryptableAvailable),
+          allowConfidentialCredits: c.allowConfidentialCredits,
+          allowNonConfidentialCredits: c.allowNonConfidentialCredits,
+          pendingCreditCounter: c.pendingCreditCounter.toString(),
+          maxPendingCreditCounter: c.maxPendingCreditCounter.toString(),
+          expectedPendingCreditCounter: c.expectedPendingCreditCounter.toString(),
+          actualPendingCreditCounter: c.actualPendingCreditCounter.toString(),
+        }
+      : null,
+    slot: acc.slot,
+  };
+}
