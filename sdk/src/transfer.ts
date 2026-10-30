@@ -28,3 +28,11 @@ export type TransferPlan = {
   proofMs: number;
   done: { stage: TransferStage; signature: string; bytes: number }[];
 };
+
+export type TransferResult = {
+  signature: string;
+  signatures: string[];
+  proofMs: number;
+  newAvailable: bigint;
+  plan: TransferPlan;
+};
