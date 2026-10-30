@@ -123,3 +123,26 @@ export async function decryptBalances(p: {
   if (p.verify) out.availableFromElGamal = decryptAvailableElGamal(p.keys, c.available);
   return out;
 }
+
+export type SealedAccountView = {
+  address: string;
+  owner: string;
+  mint: string;
+  programId: string;
+  publicAmount: bigint;
+  sealed: {
+    approved: boolean;
+    elgamalPubkey: string;
+    pendingLo: string;
+    pendingHi: string;
+    available: string;
+    decryptableAvailable: string;
+    allowConfidentialCredits: boolean;
+    allowNonConfidentialCredits: boolean;
+    pendingCreditCounter: string;
+    maxPendingCreditCounter: string;
+    expectedPendingCreditCounter: string;
+    actualPendingCreditCounter: string;
+  } | null;
+  slot: number;
+};
