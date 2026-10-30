@@ -7,3 +7,4 @@ export * from "./instructions.js";
 export * from "./proofs.js";
 export * from "./rpc.js";
 export * from "./account.js";
+export * from "./transfer.js";
