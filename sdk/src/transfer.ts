@@ -1,9 +1,12 @@
 import { Buffer } from "buffer";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { SealedError } from "./errors.js";
+import { Connection, Keypair, PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
+import { ZK_ELGAMAL_PROOF_PROGRAM_ID } from "./constants.js";
+import { SealedError, isSealedError } from "./errors.js";
 import { deriveSealKeys, type SealKeys } from "./keys.js";
+import { contextStateSize, ixCloseContextState, ixTransfer, ixVerifyProof } from "./instructions.js";
 import { fetchMint, fetchTokenAccount } from "./account.js";
 import { decryptAvailable, generateTransferProofs } from "./proofs.js";
+import { sendInstructions, type SendOptions } from "./rpc.js";
 
 export type TransferMode = "context-state";
 export type TransferStage = "proofs" | "equality" | "validity" | "range" | "transfer" | "cleanup";
@@ -45,6 +48,9 @@ export type TransferResult = {
 };
 
 const b64 = (b: Uint8Array) => Buffer.from(b).toString("base64");
+const unb64 = (s: string) => new Uint8Array(Buffer.from(s, "base64"));
+const STEPS: TransferStage[] = ["equality", "validity", "range", "transfer"];
+const TOTAL = STEPS.length + 1;
 
 const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
@@ -112,5 +118,141 @@ export async function planTransfer(p: {
     newAvailable: proofs.newAvailable.toString(),
     proofMs: proofs.ms,
     done: [],
+  };
+}
+
+async function contextVerified(connection: Connection, address: PublicKey, authority: PublicKey): Promise<"missing" | "allocated" | "verified"> {
+  const info = await connection.getAccountInfo(address, "confirmed");
+  if (!info || info.lamports === 0) return "missing";
+  if (!info.owner.equals(ZK_ELGAMAL_PROOF_PROGRAM_ID)) return "missing";
+  const d = new Uint8Array(info.data);
+  return d.length >= 32 && Buffer.compare(Buffer.from(d.subarray(0, 32)), authority.toBuffer()) === 0 ? "verified" : "allocated";
+}
+
+async function runPlan(p: {
+  connection: Connection;
+  payer: Keypair;
+  owner: Keypair;
+  plan: TransferPlan;
+  onProgress?: (e: TransferProgress) => void;
+  send?: SendOptions;
+}): Promise<TransferResult> {
+  const { connection, payer, owner, plan } = p;
+  if (plan.payer !== payer.publicKey.toBase58()) throw new SealedError("TransferStepFailed", "plan was made with another payer");
+  const ctxKp = {
+    equality: Keypair.fromSecretKey(unb64(plan.contextSecrets.equality)),
+    validity: Keypair.fromSecretKey(unb64(plan.contextSecrets.validity)),
+    range: Keypair.fromSecretKey(unb64(plan.contextSecrets.range)),
+  };
+  const authority = payer.publicKey;
+  const rent = async (len: number) => connection.getMinimumBalanceForRentExemption(contextStateSize(len));
+  const create = async (kp: Keypair, len: number): Promise<TransactionInstruction> =>
+    SystemProgram.createAccount({
+      fromPubkey: payer.publicKey,
+      newAccountPubkey: kp.publicKey,
+      lamports: await rent(len),
+      space: contextStateSize(len),
+      programId: ZK_ELGAMAL_PROOF_PROGRAM_ID,
+    });
+  const ctxInfo = (kp: Keypair) => ({ account: kp.publicKey, authority });
+  const isDone = (s: TransferStage) => plan.done.some((d) => d.stage === s);
+
+  const steps: Record<Exclude<TransferStage, "proofs" | "cleanup">, () => Promise<{ ixs: TransactionInstruction[]; signers: Keypair[] } | null>> = {
+    equality: async () => {
+      const [eq, rg] = await Promise.all([
+        contextVerified(connection, ctxKp.equality.publicKey, authority),
+        contextVerified(connection, ctxKp.range.publicKey, authority),
+      ]);
+      if (eq === "verified" && rg !== "missing") return null;
+      if (eq === "allocated") throw new SealedError("TransferStepFailed", "equality context allocated but not verified");
+      const ixs = [await create(ctxKp.equality, plan.proofs.eqLen)];
+      const signers = [ctxKp.equality];
+      if (rg === "missing") {
+        ixs.push(await create(ctxKp.range, plan.proofs.rangeLen));
+        signers.push(ctxKp.range);
+      }
+      ixs.push(ixVerifyProof("VerifyCiphertextCommitmentEquality", unb64(plan.proofs.equality), ctxInfo(ctxKp.equality)));
+      return { ixs, signers };
+    },
+    validity: async () => {
+      const st = await contextVerified(connection, ctxKp.validity.publicKey, authority);
+      if (st === "verified") return null;
+      if (st === "allocated") throw new SealedError("TransferStepFailed", "validity context allocated but not verified");
+      return {
+        ixs: [
+          await create(ctxKp.validity, plan.proofs.valLen),
+          ixVerifyProof("VerifyBatchedGroupedCiphertext3HandlesValidity", unb64(plan.proofs.validity), ctxInfo(ctxKp.validity)),
+        ],
+        signers: [ctxKp.validity],
+      };
+    },
+    range: async () => {
+      const st = await contextVerified(connection, ctxKp.range.publicKey, authority);
+      if (st === "verified") return null;
+      if (st === "missing") throw new SealedError("TransferStepFailed", "range context missing");
+      return { ixs: [ixVerifyProof("VerifyBatchedRangeProofU128", unb64(plan.proofs.range), ctxInfo(ctxKp.range))], signers: [] };
+    },
+    transfer: async () => {
+      const src = await fetchTokenAccount(connection, new PublicKey(plan.source));
+      const sc = src?.state.confidential;
+      if (!sc) throw new SealedError("NotSealed", "source vanished");
+      if (b64(sc.available) !== plan.sourceAvailableCiphertext) {
+        throw new SealedError("BalanceChanged", "the source balance changed since the proofs were built; clean up and start again", { plan });
+      }
+      return {
+        ixs: [
+          ixTransfer({
+            source: new PublicKey(plan.source),
+            mint: new PublicKey(plan.mint),
+            destination: new PublicKey(plan.destination),
+            owner: owner.publicKey,
+            newSourceDecryptableAvailableBalance: unb64(plan.transferData.newDecryptable),
+            auditorCiphertextLo: unb64(plan.transferData.auditorLo),
+            auditorCiphertextHi: unb64(plan.transferData.auditorHi),
+            equality: { contextState: ctxKp.equality.publicKey },
+            validity: { contextState: ctxKp.validity.publicKey },
+            range: { contextState: ctxKp.range.publicKey },
+          }),
+          ixCloseContextState(ctxKp.equality.publicKey, payer.publicKey, authority),
+          ixCloseContextState(ctxKp.validity.publicKey, payer.publicKey, authority),
+          ixCloseContextState(ctxKp.range.publicKey, payer.publicKey, authority),
+        ],
+        signers: [owner],
+      };
+    },
+  };
+
+  for (const [i, stage] of STEPS.entries()) {
+    if (isDone(stage)) continue;
+    const step = i + 2;
+    p.onProgress?.({ step, total: TOTAL, stage, status: "start" });
+    const t = now();
+    let built;
+    try {
+      built = await steps[stage as keyof typeof steps]();
+    } catch (e) {
+      if (isSealedError(e, "BalanceChanged")) throw e;
+      throw new SealedError("TransferStepFailed", `step ${stage}: ${(e as Error).message}`, { plan, stage, cause: e });
+    }
+    if (!built) {
+      plan.done.push({ stage, signature: "", bytes: 0 });
+      p.onProgress?.({ step, total: TOTAL, stage, status: "confirmed", ms: 0 });
+      continue;
+    }
+    try {
+      const r = await sendInstructions(connection, built.ixs, payer, built.signers, p.send);
+      plan.done.push({ stage, signature: r.signature, bytes: r.bytes });
+      p.onProgress?.({ step, total: TOTAL, stage, status: "confirmed", signature: r.signature, ms: Math.round(now() - t), bytes: r.bytes });
+    } catch (e) {
+      throw new SealedError("TransferStepFailed", `step ${stage}: ${(e as Error).message}`, { plan, stage, cause: e });
+    }
+  }
+  const sigs = plan.done.map((d) => d.signature).filter(Boolean);
+  return {
+    signature: plan.done.find((d) => d.stage === "transfer")?.signature ?? "",
+    signatures: sigs,
+    proofMs: plan.proofMs,
+    newAvailable: BigInt(plan.newAvailable),
+    plan,
   };
 }
