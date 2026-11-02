@@ -8,3 +8,4 @@ export * from "./proofs.js";
 export * from "./rpc.js";
 export * from "./account.js";
 export * from "./transfer.js";
+export * from "./decode.js";
