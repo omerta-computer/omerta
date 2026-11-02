@@ -121,6 +121,25 @@ export async function planTransfer(p: {
   };
 }
 
+export async function sealedTransfer(p: {
+  connection: Connection;
+  payer: Keypair;
+  owner: Keypair;
+  source: PublicKey;
+  destination: PublicKey;
+  amount: bigint;
+  keys?: SealKeys;
+  mode?: TransferMode;
+  onProgress?: (e: TransferProgress) => void;
+  send?: SendOptions;
+}): Promise<TransferResult> {
+  p.onProgress?.({ step: 1, total: TOTAL, stage: "proofs", status: "start" });
+  const t0 = now();
+  const plan = await planTransfer(p);
+  p.onProgress?.({ step: 1, total: TOTAL, stage: "proofs", status: "confirmed", ms: Math.round(now() - t0) });
+  return runPlan({ ...p, plan });
+}
+
 async function contextVerified(connection: Connection, address: PublicKey, authority: PublicKey): Promise<"missing" | "allocated" | "verified"> {
   const info = await connection.getAccountInfo(address, "confirmed");
   if (!info || info.lamports === 0) return "missing";
