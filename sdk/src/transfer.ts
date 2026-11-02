@@ -275,3 +275,14 @@ async function runPlan(p: {
     plan,
   };
 }
+
+export async function resumeTransfer(p: {
+  connection: Connection;
+  payer: Keypair;
+  owner: Keypair;
+  plan: TransferPlan;
+  onProgress?: (e: TransferProgress) => void;
+  send?: SendOptions;
+}): Promise<TransferResult> {
+  return runPlan(p);
+}
