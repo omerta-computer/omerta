@@ -286,3 +286,21 @@ export async function resumeTransfer(p: {
 }): Promise<TransferResult> {
   return runPlan(p);
 }
+
+export async function cleanupTransfer(p: { connection: Connection; payer: Keypair; plan: TransferPlan; send?: SendOptions }): Promise<string[]> {
+  const out: string[] = [];
+  const ixs: TransactionInstruction[] = [];
+  for (const k of ["equality", "validity", "range"] as const) {
+    const addr = new PublicKey(p.plan.context[k]);
+    const st = await contextVerified(p.connection, addr, p.payer.publicKey);
+    if (st === "allocated" && k === "range") {
+      const v = ixVerifyProof("VerifyBatchedRangeProofU128", unb64(p.plan.proofs.range), { account: addr, authority: p.payer.publicKey });
+      out.push((await sendInstructions(p.connection, [v], p.payer, [], p.send)).signature);
+      ixs.push(ixCloseContextState(addr, p.payer.publicKey, p.payer.publicKey));
+    } else if (st === "verified") {
+      ixs.push(ixCloseContextState(addr, p.payer.publicKey, p.payer.publicKey));
+    }
+  }
+  if (ixs.length) out.push((await sendInstructions(p.connection, ixs, p.payer, [], p.send)).signature);
+  return out;
+}
