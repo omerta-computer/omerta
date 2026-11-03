@@ -1,6 +1,8 @@
 import { Buffer } from "buffer";
 import type { PublicKey } from "@solana/web3.js";
+import { zk } from "./zk.js";
 import { CtIx, ProofIx, TOKEN_2022_PROGRAM_ID, TokenIx, ZK_ELGAMAL_PROOF_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "./constants.js";
+import type { SealKeys } from "./keys.js";
 
 export type DecodedInstruction = {
   index: number;
@@ -110,4 +112,19 @@ export function decodeSealedInstructions(tx: TxLike): DecodedInstruction[] {
     }
     return { ...base, program: "other", name: "unknown" };
   });
+}
+
+export function decryptTransferAmount(p: { validityTx: TxLike; keys: SealKeys; role: "source" | "destination" }): bigint | null {
+  const { keys: accts, ixs } = normalized(p.validityTx);
+  const zkId = ZK_ELGAMAL_PROOF_PROGRAM_ID.toBase58();
+  const ix = ixs.find((i) => accts[i.programIdIndex] === zkId && i.data[0] === ProofIx.VerifyBatchedGroupedCiphertext3HandlesValidity);
+  if (!ix || ix.data.length < 1 + 96 + 256) return null;
+  const ctx = ix.data.subarray(1);
+  const idx = p.role === "source" ? 0 : 1;
+  const pk = ctx.subarray(idx * 32, idx * 32 + 32);
+  if (Buffer.compare(Buffer.from(pk), Buffer.from(p.keys.elgamalPubkey)) !== 0) return null;
+  const lo = zk.GroupedElGamalCiphertext3Handles.fromBytes(ctx.slice(96, 224));
+  const hi = zk.GroupedElGamalCiphertext3Handles.fromBytes(ctx.slice(224, 352));
+  const s = p.keys.elgamal.secret();
+  return lo.decrypt(s, idx) + (hi.decrypt(s, idx) << 16n);
 }
