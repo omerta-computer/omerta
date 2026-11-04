@@ -31,3 +31,40 @@ await sealed.ready();                                  // browser: call once bef
 | `ASSOCIATED_TOKEN_PROGRAM_ID` | `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL` |
 | `MAX_TRANSFER_AMOUNT` | `2n**48n - 1n` |
 | `DEFAULT_MAX_PENDING_CREDITS` | `65536n` (the CLI's default `maximum_pending_balance_credit_counter`) |
+
+## Keys
+
+The ElGamal keypair and the AES key are derived the standard way of solana-zk-sdk >= 7
+(`derive_confidential_keys`), which is what `spl-token` CLI >= 5.7.0 and the Token-2022 JS
+client use, so a keypair file used in the browser opens the same balance in CLI 5.7.1
+(`spl-token balance --confidential`, `apply-pending-balance`). Checked against the canonical
+cross-SDK vectors of solana-zk-sdk 8.1.0.
+
+- The owner signs the constant message `solana-conf-bal/v1` once (ed25519, deterministic).
+- `prk = HKDF-SHA512-Extract(salt "solana-conf-bal/v1", ikm = signature)`;
+  AES key = `Expand(prk, "ae", 16)`; ElGamal secret = `wide-reduce(Expand(prk, "elgamal", 64))`.
+- Keys are per wallet: one ElGamal keypair and one AES key for all of the owner's token accounts.
+- CLI <= 5.6 used a per-account SHA3 KDF; `deriveSealKeysLegacy(owner, tokenAccount)` opens
+  such accounts. New accounts never use it.
+
+```ts
+type SealKeys = { elgamal: ElGamalKeypair; ae: AeKey; elgamalPubkey: Uint8Array /*32*/ };
+
+deriveSealKeys(owner: Keypair): SealKeys
+deriveSealKeysFromSigner(signMessage: (msg: Uint8Array) => Promise<Uint8Array>): Promise<SealKeys>
+sealKeysFromSignature(sig: Uint8Array): SealKeys          // sig over STANDARD_DERIVATION_MESSAGE
+deriveSealKeysLegacy(owner: Keypair, tokenAccount: PublicKey): SealKeys
+// STANDARD_DERIVATION_MESSAGE = bytes of "solana-conf-bal/v1". A signature over it equals the
+// decryption keys: never sign it for, or send it to, anyone else.
+
+generateRecoveryPhrase(words?: 12 | 24): string                  // BIP39, default 12
+keypairFromRecoveryPhrase(phrase: string, opts?: { passphrase?: string;
+                          derivationPath?: string }): Keypair
+// no derivationPath = `solana-keygen recover` default (first 32 bytes of the BIP39 seed);
+// derivationPath "m/44'/501'/0'/0'" = the usual browser-wallet path.
+keypairFromFile(json: string | number[]): Keypair                // solana-keygen file format
+keypairToFile(kp: Keypair): string                               // "[n,n,...]" (64 numbers)
+sealedTokenAccountAddress(owner: PublicKey, mint: PublicKey): PublicKey   // Token-2022 ATA
+```
+
+Errors: `InvalidRecoveryPhrase`, `InvalidKeyFile`.
