@@ -68,3 +68,22 @@ sealedTokenAccountAddress(owner: PublicKey, mint: PublicKey): PublicKey   // Tok
 ```
 
 Errors: `InvalidRecoveryPhrase`, `InvalidKeyFile`.
+
+## Account: create and seal
+
+```ts
+createSealedAccount(p: {
+  connection: Connection; payer: Keypair; owner: Keypair; mint: PublicKey;
+  maxPendingCredits?: bigint;                     // default DEFAULT_MAX_PENDING_CREDITS
+}): Promise<{ tokenAccount: PublicKey; signature: string; keys: SealKeys }>
+```
+One transaction: create the Token-2022 ATA (idempotent), Reallocate for the
+ConfidentialTransferAccount extension, `ConfigureAccount` with a pubkey-validity proof
+(ZK proof instruction in the same transaction), `DisableNonConfidentialCredits`.
+`payer` may equal `owner`. Re-running on an already sealed account throws
+`AlreadySealed` without sending anything.
+
+Instruction builders (exported, for callers who assemble their own transactions):
+`ixConfigureAccount`, `ixDisableNonConfidentialCredits`, `ixEnableNonConfidentialCredits`,
+`ixDeposit`, `ixApplyPendingBalance`, `ixTransfer`, `ixVerifyPubkeyValidity`,
+`ixVerifyProof(kind, data, contextState?)`, `ixCloseContextState`, `ixReallocate`.
