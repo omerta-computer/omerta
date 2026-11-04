@@ -87,3 +87,11 @@ Instruction builders (exported, for callers who assemble their own transactions)
 `ixConfigureAccount`, `ixDisableNonConfidentialCredits`, `ixEnableNonConfidentialCredits`,
 `ixDeposit`, `ixApplyPendingBalance`, `ixTransfer`, `ixVerifyPubkeyValidity`,
 `ixVerifyProof(kind, data, contextState?)`, `ixCloseContextState`, `ixReallocate`.
+
+## Deposit (public -> sealed, own account only)
+
+```ts
+deposit(p: { connection; payer: Keypair; owner: Keypair; tokenAccount: PublicKey;
+             mint: PublicKey; amount: bigint; decimals: number }): Promise<string>
+```
+Lands in pending; follow with `applyPending`.
