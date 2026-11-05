@@ -223,3 +223,17 @@ type DecodedInstruction = { index: number; program: "Token-2022" | "ZkElGamalPro
 `ZkProof.VerifyBatchedRangeProofU128`, `ZkProof.CloseContextState`, `System.CreateAccount`.
 `amount` is set only where the chain carries a public number (Deposit, Withdraw, MintTo,
 System transfer); a sealed transfer has none.
+
+## Tested
+
+- Keys (standard and legacy), recovery phrase and key file: unit-tested against the canonical cross-SDK vectors of
+  solana-zk-sdk 8.1.0; a key derived by the SDK equals the key `spl-token` CLI 5.7.1 derives on chain.
+- Proofs and transaction sizes: unit-tested (`sdk/test/`).
+- Network: `sdk/e2e/roundtrip.mts` seals two accounts, sends SDK -> CLI and CLI -> SDK sealed transfers with the stock
+  CLI 5.7.1, and checks that a public transfer to a sealed account is refused with `0x31`. The context-state transfer
+  takes 4 transactions, about 1.8 s in the browser wallet; resume and cleanup were run against the chain.
+
+```
+node --import tsx e2e/roundtrip.mts --rpc <rpc> --cli <spl-token 5.7.1> --keys <dir> --out <dir> --mint <mint>
+```
+The `a` key under `--keys` holds a sealed balance of that mint.
