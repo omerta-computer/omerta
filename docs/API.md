@@ -107,3 +107,74 @@ Reads the account, decrypts pending (ElGamal, lo 16 bit + hi 32 bit) and availab
 sends `ApplyPendingBalance` with the expected credit counter and the new AES-encrypted
 available balance. `signature` is `null` when nothing is pending.
 Errors: `NotSealed`, `PendingChanged` (a credit landed between read and apply: re-run).
+
+## Sealed transfer
+
+```ts
+type TransferMode = "context-state";
+
+type TransferProgress = {
+  step: number; total: number;                       // total = 5 on the context-state path
+  stage: "proofs" | "equality" | "validity" | "range" | "transfer" | "cleanup";
+  status: "start" | "sent" | "confirmed";
+  signature?: string; ms?: number; bytes?: number;   // ms: elapsed for this step
+};
+
+sealedTransfer(p: {
+  connection: Connection; payer: Keypair; owner: Keypair;
+  source: PublicKey;                 // sender's sealed token account
+  destination: PublicKey;            // receiver's sealed token account (not the owner wallet)
+  amount: bigint;
+  keys?: SealKeys;                   // derived from owner if absent
+  mode?: TransferMode;               // default "context-state"
+  onProgress?: (e: TransferProgress) => void;
+  send?: SendOptions;                // commitment, timeout, poll interval
+}): Promise<TransferResult>
+
+type TransferResult = {
+  signature: string;                 // the transaction holding the Token-2022 Transfer
+  signatures: string[];              // every transaction sent, in order
+  proofMs: number;                   // proof generation time (all three proofs)
+  newAvailable: bigint;
+  plan: TransferPlan;
+};
+planTransfer(p): Promise<TransferPlan>   // proofs and plan only, nothing sent
+```
+
+Context-state path: step 1 builds the three proofs locally (about 43 ms in Node, p50; about 62 ms in a browser), then four
+transactions, each confirmed before the next (sizes measured offline, legacy limit 1,232):
+1. `equality`: create the equality and range context accounts + `VerifyCiphertextCommitmentEquality` (831 B)
+2. `validity`: create the validity context account + `VerifyBatchedGroupedCiphertext3HandlesValidity` (902 B)
+3. `range`: `VerifyBatchedRangeProofU128` into the range context account (1,205 B)
+4. `transfer`: `ConfidentialTransfer::Transfer` referencing the three context accounts + close all
+   three (rent back to `payer`) in the same transaction (591 B)
+The stock CLI 5.7.1 uses 10 transactions for the same transfer (see `docs/genesis.md`); ours is 4,
+with the same proofs. The context-state authority is `payer`. The count is reported in every
+progress event. UIs never hard-code it: show `step` of `total`.
+Sealing an account is 1 transaction (571 B).
+
+Failure and resume:
+```ts
+type TransferPlan = {               // JSON-serialisable; keep it until the transfer is done
+  v: 1; id: string; source: string; destination: string; mint: string; payer: string;
+  amount: string; sourceAvailableCiphertext: string;
+  context: { equality: string; validity: string; range: string };        // addresses
+  contextSecrets: { equality: string; validity: string; range: string }; // throwaway keys of
+      // the three context accounts (they only ever hold rent); no owner, ElGamal or AES key
+  proofs: {...}; transferData: {...}; newAvailable: string; proofMs: number;
+  done: { stage: string; signature: string; bytes: number }[];
+};
+resumeTransfer(p: { connection; payer; owner; plan; onProgress?; send? }): Promise<TransferResult>
+cleanupTransfer(p: { connection; payer; plan; send? }): Promise<string[]>
+```
+A failed step throws `TransferStepFailed` with `details.plan` and `details.stage`.
+`resumeTransfer` re-reads the chain, skips steps that already landed, and continues; if the
+source balance changed since the proofs were built it throws `BalanceChanged` and the caller
+runs `cleanupTransfer` (verifies a half-made range context so it can close, then closes every
+context account, rent back to `payer`) and starts a new transfer. Context accounts never hold
+tokens.
+
+Other errors (`SealedError.code`): `NotSealed`, `InsufficientSealedBalance` (`details.available`),
+`AmountTooLarge`, `DestinationNotSealed`, `TransactionFailed` (`details.signature`,
+`details.logs`; message names Token-2022 `0x31` NonConfidentialTransfersDisabled),
+`ConfirmTimeout`, `DecryptFailed`.
