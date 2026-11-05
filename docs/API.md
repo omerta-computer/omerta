@@ -196,3 +196,30 @@ decryptPending(keys, lo, hi) / decryptAvailable(keys, aesCiphertext)   // pure, 
 decryptTransferAmount(p: { validityTx: TxLike /* getTransaction result */; keys: SealKeys;
   role: "source" | "destination" }): bigint | null   // null: no such proof or not these keys
 ```
+
+## Read as an outsider (explorer)
+
+```ts
+readSealedAccount(connection, address: PublicKey): Promise<SealedAccountView | null>
+type SealedAccountView = {
+  address: string; owner: string; mint: string; programId: string;
+  publicAmount: bigint;              // the non-confidential balance (0 for sealed accounts)
+  sealed: {
+    approved: boolean; elgamalPubkey: string;                 // base64
+    pendingLo: string; pendingHi: string; available: string;  // ElGamal ciphertexts, base64
+    decryptableAvailable: string;                             // AES ciphertext, base64
+    allowConfidentialCredits: boolean; allowNonConfidentialCredits: boolean;
+    pendingCreditCounter: string; maxPendingCreditCounter: string;
+    expectedPendingCreditCounter: string; actualPendingCreditCounter: string;
+  } | null;                          // null = Token-2022 account without the extension
+  slot: number;
+};
+decodeSealedInstructions(tx: TxLike): DecodedInstruction[]
+type DecodedInstruction = { index: number; program: "Token-2022" | "ZkElGamalProof" | "System" |
+  "AssociatedToken" | "ComputeBudget" | "other"; programId: string; name: string; sealed: boolean;
+  accounts: string[]; ciphertexts?: Record<string, string>; amount?: string /* public only */ };
+```
+`name` is e.g. `ConfidentialTransfer.Transfer`, `ConfidentialTransfer.ApplyPendingBalance`,
+`ZkProof.VerifyBatchedRangeProofU128`, `ZkProof.CloseContextState`, `System.CreateAccount`.
+`amount` is set only where the chain carries a public number (Deposit, Withdraw, MintTo,
+System transfer); a sealed transfer has none.
