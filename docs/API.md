@@ -178,3 +178,21 @@ Other errors (`SealedError.code`): `NotSealed`, `InsufficientSealedBalance` (`de
 `AmountTooLarge`, `DestinationNotSealed`, `TransactionFailed` (`details.signature`,
 `details.logs`; message names Token-2022 `0x31` NonConfidentialTransfersDisabled),
 `ConfirmTimeout`, `DecryptFailed`.
+
+## Decrypt (owner)
+
+```ts
+decryptBalances(p: { connection; tokenAccount: PublicKey; keys: SealKeys; verify?: boolean }): Promise<{
+  available: bigint;                 // AES (decryptable_available_balance), instant
+  availableFromElGamal?: bigint;     // only with verify: true, slow (discrete log)
+  pending: bigint;                   // ElGamal lo + hi << 16
+  pendingCredits: bigint; slot: number;
+}>
+decryptPending(keys, lo, hi) / decryptAvailable(keys, aesCiphertext)   // pure, no RPC
+
+// "open your own" for one transfer: the transfer amount sits, as a grouped ciphertext
+// with one handle each for source, destination and auditor, in the validity-proof
+// instruction (step 2's transaction). Sender or receiver decrypts it locally.
+decryptTransferAmount(p: { validityTx: TxLike /* getTransaction result */; keys: SealKeys;
+  role: "source" | "destination" }): bigint | null   // null: no such proof or not these keys
+```
