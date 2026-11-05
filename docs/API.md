@@ -95,3 +95,15 @@ deposit(p: { connection; payer: Keypair; owner: Keypair; tokenAccount: PublicKey
              mint: PublicKey; amount: bigint; decimals: number }): Promise<string>
 ```
 Lands in pending; follow with `applyPending`.
+
+## Apply pending
+
+```ts
+applyPending(p: { connection; payer: Keypair; owner: Keypair; tokenAccount: PublicKey;
+                  keys?: SealKeys }): Promise<{ signature: string | null;
+                  available: bigint; applied: bigint }>
+```
+Reads the account, decrypts pending (ElGamal, lo 16 bit + hi 32 bit) and available (AES),
+sends `ApplyPendingBalance` with the expected credit counter and the new AES-encrypted
+available balance. `signature` is `null` when nothing is pending.
+Errors: `NotSealed`, `PendingChanged` (a credit landed between read and apply: re-run).
