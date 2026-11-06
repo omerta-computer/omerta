@@ -1,0 +1,8 @@
+[engine]
+upstream = "https://github.com/anza-xyz/agave"
+tag = "v4.5.0-alpha.4"
+commit = "ccddd3dffc7edb1d6ed8182ac8e9cbd73b24b159"
+patches = ["chain/patches/ledger-floor.patch"]
+cluster_type = "development"
+lamports_per_signature = 5000
+transaction_v1_feature = "txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL"
