@@ -1,0 +1,13 @@
+diff --git a/ledger/src/blockstore/cleanup_service.rs b/ledger/src/blockstore/cleanup_service.rs
+index 7cec884..c0bf7d6 100644
+--- a/ledger/src/blockstore/cleanup_service.rs
++++ b/ledger/src/blockstore/cleanup_service.rs
+@@ -58,7 +58,7 @@ pub const DEFAULT_MIN_MAX_BLOCKSTORE_SHREDS: u64 = 100_000_000;
+ // is retained for now while the code undergoes deprecation and removal
+ pub const LEGACY_DEFAULT_MAX_LEDGER_SHREDS: u64 = 200_000_000;
+ // Similar to above, retain a legacy constant for now
+-pub const LEGACY_DEFAULT_MIN_MAX_LEDGER_SHREDS: u64 = 50_000_000;
++pub const LEGACY_DEFAULT_MIN_MAX_LEDGER_SHREDS: u64 = 100_000;
+ 
+ // Perform blockstore cleanup at this interval to limit the overhead of cleanup
+ // Cleanup will be considered after the latest root has advanced by this value
