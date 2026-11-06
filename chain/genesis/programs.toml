@@ -6,3 +6,12 @@ patches = ["chain/patches/ledger-floor.patch"]
 cluster_type = "development"
 lamports_per_signature = 5000
 transaction_v1_feature = "txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL"
+
+[[program]]
+name = "Token-2022"
+version = "8.0.0"
+id = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+loader = "BPFLoader2111111111111111111111111111111111"
+file = "spl_token_2022-8.0.0.so"
+source = "https://github.com/solana-program/token-2022/releases (asset spl_token_2022-8.0.0.so)"
+sha256 = "d32c6364ed5d2a0ad68a8f4b04baff9b24d2b7e60df1bcdd1894071d07d69de6"
