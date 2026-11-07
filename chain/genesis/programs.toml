@@ -15,3 +15,12 @@ loader = "BPFLoader2111111111111111111111111111111111"
 file = "spl_token_2022-8.0.0.so"
 source = "https://github.com/solana-program/token-2022/releases (asset spl_token_2022-8.0.0.so)"
 sha256 = "d32c6364ed5d2a0ad68a8f4b04baff9b24d2b7e60df1bcdd1894071d07d69de6"
+
+[[program]]
+name = "Associated Token Account"
+version = "1.1.2"
+id = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+loader = "BPFLoader2111111111111111111111111111111111"
+file = "spl_associated_token_account-1.1.2.so"
+source = "https://github.com/solana-program/associated-token-account/releases (asset spl_associated_token_account-1.1.2.so)"
+sha256 = "9ba8d4dfec9ca6ba8480f7f4edcc1a90184271db44e238ea0f09bba47ad2d8a9"
