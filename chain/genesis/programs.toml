@@ -24,3 +24,23 @@ loader = "BPFLoader2111111111111111111111111111111111"
 file = "spl_associated_token_account-1.1.2.so"
 source = "https://github.com/solana-program/associated-token-account/releases (asset spl_associated_token_account-1.1.2.so)"
 sha256 = "9ba8d4dfec9ca6ba8480f7f4edcc1a90184271db44e238ea0f09bba47ad2d8a9"
+
+[[program]]
+name = "Stake"
+version = "5.1.0"
+id = "Stake11111111111111111111111111111111111111"
+loader = "BPFLoaderUpgradeab1e11111111111111111111111"
+upgrade_authority = "none"
+file = "core_bpf_stake-5.1.0.so"
+source = "agave program-binaries"
+sha256 = "3d2d39c596ce8be2d47816b4ee5db9fc759d80fde54b08c930ad0b6daed64c2c"
+
+[[program]]
+name = "Address Lookup Table"
+version = "3.0.0"
+id = "AddressLookupTab1e1111111111111111111111111"
+loader = "BPFLoaderUpgradeab1e11111111111111111111111"
+upgrade_authority = "none"
+file = "core_bpf_address_lookup_table-3.0.0.so"
+source = "agave program-binaries"
+sha256 = "e264e1537c5ee1252aae1fa476c25000b641357bc6af4efab65f314160a99570"
