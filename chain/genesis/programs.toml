@@ -64,3 +64,9 @@ upgrade_authority = "none"
 file = "core_bpf_feature_gate-0.0.1.so"
 source = "agave program-binaries"
 sha256 = "4889655084aa7b8a58cb44f56a8396881a7329a1e3b91cebd9763cdf9ad04e88"
+
+[native]
+zk_elgamal_proof = "ZkE1Gama1Proof11111111111111111111111111111"
+
+[absent]
+legacy_spl_token = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
