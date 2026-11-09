@@ -79,3 +79,10 @@ supply = 1000000000
 confidential_transfer = "auto-approve, no auditor"
 mint_authority = "removed"
 freeze_authority = "none"
+
+[network]
+validators = 4
+bootstrap_stake_lamports = 25000000000
+joiner_stake_gas = 25
+vote_account_reserve_gas = 2000
+snapshot_interval_slots = 3000
