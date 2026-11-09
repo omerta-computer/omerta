@@ -70,3 +70,12 @@ zk_elgamal_proof = "ZkE1Gama1Proof11111111111111111111111111111"
 
 [absent]
 legacy_spl_token = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+
+[main_asset]
+symbol = "TEST"
+mint = "5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif"
+decimals = 6
+supply = 1000000000
+confidential_transfer = "auto-approve, no auditor"
+mint_authority = "removed"
+freeze_authority = "none"
