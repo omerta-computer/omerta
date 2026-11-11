@@ -13,3 +13,13 @@ Public balance 0; the rest exists only as ciphertext in the confidential transfe
 spl-token --url $RPC display <token-account>
 solana --url $RPC account <token-account> --output json
 ```
+
+## 2. A public transfer into a sealed account is refused
+
+The sender first moves some of his own sealed balance to his public balance (this amount is public), then tries a
+public transfer. Token-2022 answers `custom program error: 0x31` (`NonConfidentialTransfersDisabled`).
+
+```
+spl-token --url $RPC withdraw-confidential-tokens --fee-payer <key.json> --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif 1
+spl-token --url $RPC transfer --fee-payer <key.json> --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif 1 <recipient-owner>
+```
