@@ -23,3 +23,14 @@ public transfer. Token-2022 answers `custom program error: 0x31` (`NonConfidenti
 spl-token --url $RPC withdraw-confidential-tokens --fee-payer <key.json> --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif 1
 spl-token --url $RPC transfer --fee-payer <key.json> --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif 1 <recipient-owner>
 ```
+
+## 3. A sealed transfer goes through
+
+```
+spl-token --url $RPC transfer --fee-payer <key.json> --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif 1 <recipient-owner> --confidential
+spl-token --url $RPC apply-pending-balance --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+spl-token --url $RPC balance --owner <key.json> 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+solana --url $RPC confirm -v <the "confidential transfer" signature it prints>
+```
+
+The `balance` line prints the public part, which is 0.
