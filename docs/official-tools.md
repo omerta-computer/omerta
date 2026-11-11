@@ -34,3 +34,15 @@ solana --url $RPC confirm -v <the "confidential transfer" signature it prints>
 ```
 
 The `balance` line prints the public part, which is 0.
+
+## Seal a fresh account
+
+```
+solana-keygen new -o me.json
+solana --url $RPC airdrop 1 me.json
+spl-token --url $RPC create-account --fee-payer me.json --owner me.json 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+spl-token --url $RPC configure-confidential-transfer-account --fee-payer me.json --owner me.json 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+spl-token --url $RPC disable-non-confidential-credits --fee-payer me.json --owner me.json 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+```
+
+Test coins come from the faucet on the website as a sealed transfer into the pending balance.
