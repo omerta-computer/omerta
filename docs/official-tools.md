@@ -46,3 +46,12 @@ spl-token --url $RPC disable-non-confidential-credits --fee-payer me.json --owne
 ```
 
 Test coins come from the faucet on the website as a sealed transfer into the pending balance.
+
+## All three at once
+
+```
+RPC_URL=$RPC bash chain/scripts/check-official-tools.sh sender.json receiver.json out/
+```
+
+It writes the three outputs to `out/1-read.txt`, `out/2-public-refused.txt` and `out/3-sealed.txt` and ends with
+`verdict=PASS` only when all three hold.
