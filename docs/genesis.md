@@ -51,3 +51,14 @@ RPC_URL=<validator rpc url> bash chain/scripts/base-probe.sh <work-dir>
 ```
 
 On the chosen base it printed `sealed_transfer_secs=2.73 fails=0 verdict=PASS`.
+
+## Main asset
+
+`chain/scripts/setup-main-asset.sh` is the recorded setup run in the first slots: the `TEST` mint (6 decimals,
+confidential transfer on, auto-approve, no auditor), the reserve account (configured, whole supply deposited and
+applied in parts because one deposit is limited to 2^48-1 base units, public credits disabled), then the mint authority
+and the confidential-transfer mint authority removed. Anyone can read the result:
+
+```
+spl-token --url $RPC display 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
+```
