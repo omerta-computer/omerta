@@ -15,3 +15,23 @@ shreds so a small network can keep a bounded ledger. Nothing in the transaction 
   (`SigmaProof(PubkeyValidity, AlgebraicRelation)`); 5.7.1 is built on 7.0.1 and works. `@solana/zk-sdk` 0.5.4 (WASM)
   ships with 8.1.0 and works.
 - Transaction format v1 (4,096 bytes, feature `txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL`) is active from genesis.
+
+## Programs in genesis
+
+Every program, its loader, its source and its sha256 are in `chain/genesis/programs.toml`. `chain/scripts/genesis.sh`
+is the `solana-genesis` invocation that loads them:
+
+```
+bash chain/scripts/genesis.sh <agave-bin-dir> <program-dir> <keys-dir> <ledger-dir>
+```
+
+`solana-genesis` adds no SPL program by itself, so Token-2022, Associated Token Account and SPL Record are passed with
+`--bpf-program` under `BPFLoader2111111111111111111111111111111111` (not upgradeable). The core programs (stake 5.1.0,
+address lookup table 3.0.0, config 3.0.0, feature gate 0.0.1) come from the engine's own program binaries and are
+loaded with `--upgradeable-program ... none`, so they have no upgrade authority. The legacy SPL Token program
+(`TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`) is not in genesis: associated token accounts and the stock CLI work
+without it.
+
+SPL Record is needed because `spl-token-cli` 5.7.1 uploads the range proof through it; without it a CLI transfer fails
+with `ProgramAccountNotFound`. Its repository ships no program binary, so the file was dumped from Solana mainnet
+(`solana program dump recr1L3PCGKLbckBqMNcJhuuyU1zgo8nBhfLVsJNwr5 spl_record.so`) and its sha256 is recorded.
