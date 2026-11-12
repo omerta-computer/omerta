@@ -35,3 +35,19 @@ without it.
 SPL Record is needed because `spl-token-cli` 5.7.1 uploads the range proof through it; without it a CLI transfer fails
 with `ProgramAccountNotFound`. Its repository ships no program binary, so the file was dumped from Solana mainnet
 (`solana program dump recr1L3PCGKLbckBqMNcJhuuyU1zgo8nBhfLVsJNwr5 spl_record.so`) and its sha256 is recorded.
+
+## Base probe
+
+`chain/scripts/base-probe.sh` runs the whole flow with the stock CLI against one validator started from this genesis:
+a confidential mint, two sealed accounts, deposit, apply, a sealed transfer of 123.456789, an exact withdrawal, a
+withdrawal of one more that must fail, and a public transfer into a sealed account that must fail with `0x31`.
+
+The probe and `setup-main-asset.sh` fund their keys with `requestAirdrop`, so the validator needs a faucet: run
+`solana-faucet --keypair <keys-dir>/faucet.json` (the key `genesis.sh` creates and funds in genesis) and start the
+validator with `--rpc-faucet-address <faucet host:port>`.
+
+```
+RPC_URL=<validator rpc url> bash chain/scripts/base-probe.sh <work-dir>
+```
+
+On the chosen base it printed `sealed_transfer_secs=2.73 fails=0 verdict=PASS`.
