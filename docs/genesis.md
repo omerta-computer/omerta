@@ -62,3 +62,14 @@ and the confidential-transfer mint authority removed. Anyone can read the result
 ```
 spl-token --url $RPC display 5n31rh6t9mgFYZRhoSb8k2xUcdCgmDL5BFZbjvkPLHif
 ```
+
+## Network
+
+- 4 validators, all operated by the project on one private network. One bootstrap validator in genesis with
+  25 GAS stake; three joined with 25 GAS stake each, delegated with the stock CLI, equal once warmed up.
+- Agave 4.5 needs a BLS key on every vote account (vote accounts created with the v2 instruction) and burns a
+  validator admission ticket of 1.6 GAS per epoch from each vote account, so each holds 2,000 GAS.
+- Cluster type `development`, 5,000 lamports per signature, snapshots every 3,000 slots.
+- The RPC node keeps under an hour of transaction history.
+- The public reaches the chain only through one RPC endpoint behind a gateway that refuses node-address and admin
+  methods and writes no per-request log.
