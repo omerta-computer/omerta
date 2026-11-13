@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in the SDK, the scripts or the chain does not work as documented.
+labels: [bug]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - sdk
+        - chain scripts
+        - fork patch or genesis
+        - public RPC
+        - documents
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Commands or code, with versions (node, spl-token-cli, solana CLI). Never paste a keypair.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+  - type: input
+    id: signature
+    attributes:
+      label: Transaction signature (if any)
