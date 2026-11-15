@@ -1,0 +1,21 @@
+name: Feature request
+description: Propose a change to the SDK, the scripts or the chain configuration.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem it solves
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: visible
+    attributes:
+      label: What it changes in what everyone sees
+      description: Whether the change makes anything public that is sealed today, or seals something that is public.
