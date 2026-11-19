@@ -2,6 +2,8 @@
 
 # OMERTA
 
+**CA:** `29hCPsqJNs1BWEHrGgW1HXcCudgw1iRnJVWD33omerta`
+
 <p>
   <a href="https://omerta.computer"><img src="https://img.shields.io/badge/website-omerta.computer-111111" alt="Website"></a>
   <a href="https://x.com/omertachain"><img src="https://img.shields.io/badge/X-%40omertachain-111111" alt="X · @omertachain"></a>
