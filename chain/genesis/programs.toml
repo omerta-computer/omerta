@@ -26,6 +26,14 @@ source = "https://github.com/solana-program/associated-token-account/releases (a
 sha256 = "9ba8d4dfec9ca6ba8480f7f4edcc1a90184271db44e238ea0f09bba47ad2d8a9"
 
 [[program]]
+name = "SPL Record"
+id = "recr1L3PCGKLbckBqMNcJhuuyU1zgo8nBhfLVsJNwr5"
+loader = "BPFLoader2111111111111111111111111111111111"
+file = "spl_record.so"
+source = "solana program dump recr1L3PCGKLbckBqMNcJhuuyU1zgo8nBhfLVsJNwr5 from Solana mainnet, 2026-11-19"
+sha256 = "dbc470deb72b63724a7faf7d27c3b82ac6f6f69b6d423fa1e8c503ea34beff15"
+
+[[program]]
 name = "Stake"
 version = "5.1.0"
 id = "Stake11111111111111111111111111111111111111"
